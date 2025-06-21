@@ -1,5 +1,5 @@
 """
-Walidator konfiguracji zadań zgodnie ze standardem Runy Task Configuration.
+Walidator konfiguracji zadań zgodnie ze standardem dune Task Configuration.
 """
 
 import os

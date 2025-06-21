@@ -1,7 +1,7 @@
-# Runy Task Configuration Schema v1.0
+# dune Task Configuration Schema v1.0
 # Standardowy plik konfiguracyjny dla zadań NLP
 
-apiVersion: runy.io/v1
+apiVersion: dune.io/v1
 kind: TaskConfiguration
 metadata:
   name: imap-email-processor

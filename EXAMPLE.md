@@ -91,7 +91,7 @@ python enhanced_run.py --config configs/email-processor.yaml --environment produ
 
 ### Struktura wygenerowanej konfiguracji:
 ```yaml
-apiVersion: runy.io/v1
+apiVersion: dune.io/v1
 kind: TaskConfiguration
 metadata:
   name: email-imap-processor

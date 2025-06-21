@@ -285,7 +285,7 @@ class ConfigGenerator:
         task_name = self._generate_task_name(request, task_type)
 
         config = {
-            "apiVersion": "runy.io/v1",
+            "apiVersion": "dune.io/v1",
             "kind": "TaskConfiguration",
             "metadata": {
                 "name": task_name,

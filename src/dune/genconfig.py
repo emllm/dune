@@ -19,7 +19,7 @@ def main():
     """Główna funkcja CLI."""
 
     parser = argparse.ArgumentParser(
-        description="Generator konfiguracji Runy z żądań w języku naturalnym"
+        description="Generator konfiguracji dune z żądań w języku naturalnym"
     )
 
     parser.add_argument(
@@ -59,12 +59,12 @@ def main():
     logger.remove()
     logger.add(sys.stdout, format="<green>{time:HH:mm:ss}</green> | <level>{message}</level>")
 
-    logger.info("🔧 Generator konfiguracji Runy")
+    logger.info("🔧 Generator konfiguracji dune")
 
     # Pobierz żądanie
     if args.interactive or not args.request:
         print("\n" + "=" * 60)
-        print("🤖 GENERATOR KONFIGURACJI RUNY")
+        print("🤖 GENERATOR KONFIGURACJI dune")
         print("=" * 60)
         print("Opisz zadanie, które chcesz wykonać w języku naturalnym.")
         print("Przykłady:")
