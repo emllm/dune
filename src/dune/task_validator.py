@@ -58,7 +58,7 @@ class ManagedService(BaseModel):
 class ValidationRule(BaseModel):
     """Reguła walidacji."""
     type: str
-    ** kwargs: Any
+    kwargs: Dict[str, Any] = {}
 
 
 class TaskConfiguration(BaseModel):
