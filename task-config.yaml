@@ -1,0 +1,245 @@
+# Runy Task Configuration Schema v1.0
+# Standardowy plik konfiguracyjny dla zadań NLP
+
+apiVersion: runy.io/v1
+kind: TaskConfiguration
+metadata:
+  name: imap-email-processor
+  description: "Pobieranie i organizacja wiadomości email z IMAP"
+  version: "1.0"
+  created: "2025-06-21T10:00:00Z"
+  tags:
+    - email
+    - imap
+    - data-processing
+
+# Definicja zadania w języku naturalnym
+task:
+  natural_language: |
+    Pobierz wszystkie wiadomości email ze skrzynki IMAP i zapisz je w folderach 
+    uporządkowanych według roku i miesiąca w formacie skrzynka/rok.miesiąc/*.eml.
+    Dane logowania do skrzynki znajdziesz w pliku .env.
+
+  # Wymagania funkcjonalne
+  requirements:
+    - connect_to_imap_server
+    - download_all_emails
+    - organize_by_date
+    - save_as_eml_files
+
+  # Oczekiwany wynik
+  expected_output:
+    type: file_structure
+    pattern: "output/skrzynka/{year}.{month}/*.eml"
+
+# Środowisko wykonawcze
+runtime:
+  type: docker
+  base_image: python:3.11-slim
+
+  # Wymagane biblioteki Python
+  python_packages:
+    required:
+      - imaplib2>=3.6.0
+      - email-validator>=2.1.0
+      - python-dotenv>=1.0.0
+      - loguru>=0.7.2
+    optional:
+      - beautifulsoup4>=4.12.0  # dla parsowania HTML w emailach
+      - chardet>=5.2.0          # dla wykrywania kodowania
+
+  # Zmienne środowiskowe
+  environment:
+    required:
+      - IMAP_SERVER
+      - IMAP_USERNAME
+      - IMAP_PASSWORD
+    optional:
+      - IMAP_PORT
+      - IMAP_USE_SSL
+      - OUTPUT_DIR
+
+# Usługi i zależności
+services:
+  # Definicja usług wymaganych do zadania
+  dependencies:
+    - name: imap-server
+      type: imap
+      required: true
+      connection:
+        host: "${IMAP_SERVER}"
+        port: "${IMAP_PORT:-143}"
+        ssl: "${IMAP_USE_SSL:-false}"
+      health_check:
+        type: tcp_connect
+        timeout: 10s
+
+    - name: llm-analyzer
+      type: http_api
+      required: false  # opcjonalne - fallback na domyślne szablony
+      connection:
+        url: "${OLLAMA_BASE_URL:-http://localhost:11434}"
+        model: "${OLLAMA_MODEL:-mistral:7b}"
+      health_check:
+        type: http_get
+        endpoint: "/api/tags"
+        timeout: 30s
+
+  # Usługi tworzone automatycznie (dla testów)
+  managed_services:
+    - name: test-imap-server
+      type: dovecot
+      enabled: "${ENABLE_TEST_SERVICES:-true}"
+      config:
+        users:
+          - username: testuser@example.com
+            password: testpass123
+        sample_emails: 5
+        ports:
+          - "143:143"
+
+    - name: ollama-llm
+      type: ollama
+      enabled: "${ENABLE_LLM:-true}"
+      config:
+        model: mistral:7b
+        ports:
+          - "11434:11434"
+
+# Validation rules - walidacja przed wykonaniem
+validation:
+  pre_execution:
+    # Sprawdź połączenie z usługami
+    - type: service_connectivity
+      services: [imap-server]
+
+    # Sprawdź zmienne środowiskowe
+    - type: environment_variables
+      required: [IMAP_SERVER, IMAP_USERNAME, IMAP_PASSWORD]
+
+    # Sprawdź uprawnienia do zapisu
+    - type: file_permissions
+      paths: ["${OUTPUT_DIR:-./output}"]
+      permissions: [read, write]
+
+    # Sprawdź dostępne miejsce na dysku
+    - type: disk_space
+      minimum: "100MB"
+      path: "${OUTPUT_DIR:-./output}"
+
+  post_execution:
+    # Sprawdź czy pliki zostały utworzone
+    - type: output_verification
+      expected_files:
+        pattern: "output/skrzynka/*/*.eml"
+        minimum_count: 1
+
+    # Sprawdź strukturę folderów
+    - type: directory_structure
+      expected:
+        - "output/skrzynka"
+        - "output/skrzynka/*/email_*.eml"
+
+# Konfiguracja monitorowania i logowania
+monitoring:
+  logs:
+    level: "${LOG_LEVEL:-INFO}"
+    destinations:
+      - type: file
+        path: "logs/task-execution.log"
+      - type: stdout
+        format: json
+
+  metrics:
+    - name: emails_processed
+      type: counter
+      description: "Liczba przetworzonych emaili"
+
+    - name: execution_time
+      type: histogram
+      description: "Czas wykonania zadania"
+
+    - name: errors_count
+      type: counter
+      description: "Liczba błędów podczas wykonania"
+
+# Polityki bezpieczeństwa
+security:
+  # Ograniczenia sieciowe
+  network:
+    allowed_outbound:
+      - host: "${IMAP_SERVER}"
+        ports: [143, 993]
+      - host: "${OLLAMA_BASE_URL}"
+        ports: [11434]
+
+    blocked_outbound:
+      - "*:22"  # SSH
+      - "*:3389"  # RDP
+
+  # Ograniczenia systemu plików
+  filesystem:
+    read_only_paths:
+      - "/etc"
+      - "/usr"
+
+    writable_paths:
+      - "${OUTPUT_DIR:-./output}"
+      - "/tmp"
+      - "logs/"
+
+# Definicja pipeline'u
+pipeline:
+  stages:
+    - name: validation
+      type: validation
+      config:
+        run_pre_execution_checks: true
+
+    - name: environment_setup
+      type: setup
+      config:
+        install_packages: true
+        create_directories: true
+
+    - name: llm_analysis
+      type: llm_processing
+      config:
+        analyze_natural_language: true
+        generate_code: true
+        fallback_to_templates: true
+
+    - name: task_execution
+      type: execution
+      config:
+        run_generated_code: true
+        capture_output: true
+
+    - name: post_validation
+      type: validation
+      config:
+        run_post_execution_checks: true
+
+    - name: cleanup
+      type: cleanup
+      config:
+        remove_temp_files: true
+        compress_logs: false
+
+# Konfiguracja dla różnych środowisk
+environments:
+  development:
+    managed_services_enabled: true
+    log_level: DEBUG
+    validation_strict: false
+
+  testing:
+    managed_services_enabled: true
+    log_level: INFO
+    validation_strict: true
+
+  production:
+    managed_services_enabled: false
+    log_level: WARNING
+    validation_strict: true
+    security_enhanced: true

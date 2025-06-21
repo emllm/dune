@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dune"
-version = "0.1.7"
+version = "0.1.1"
 description = "Dynamiczny procesor danych z automatycznym wykrywaniem bibliotek"
 authors = ["Tom Sapletta <info@softreck.dev>"]
 readme = "README.md"
