@@ -1,6 +1,6 @@
 [tool.poetry]
-name = "dune"
-version = "0.1.2"
+name = "emllm-dune"
+version = "0.1.3"
 description = "Dynamiczny procesor danych z automatycznym wykrywaniem bibliotek"
 authors = ["Tom Sapletta <info@softreck.dev>"]
 readme = "README.md"
