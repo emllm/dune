@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # Lokalny serwer IMAP z przykładowymi emailami
+  mailserver:
+    image: dovecot/dovecot:latest
+    ports:
+      - "2143:143"
+      - "2199:993"
+    volumes:
+      - ./docker/mail:/srv/mail
+      - ./docker/dovecot.conf:/etc/dovecot/dovecot.conf
+      - ./docker/users:/etc/dovecot/users
+    environment:
+      - DOVECOT_USERNAME=testuser
+      - DOVECOT_PASSWORD=testpass123
+    command: dovecot -F
+
+  # Ollama dla LLM
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "21434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      ollama serve &
+      sleep 10
+      ollama pull mistral:7b
+      wait
+
+  # Aplikacja główna
+  dune:
+    build: .
+    depends_on:
+      - mailserver
+      - ollama
+    volumes:
+      - .:/app
+      - ./output:/app/output
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      # Note: The internal port (11434) remains the same within the Docker network
+      # Only the external port (21434) has been changed
+    working_dir: /app
+    command: poetry run python dune.py
+
+volumes:
+  ollama_data:

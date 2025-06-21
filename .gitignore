@@ -1,8 +1,13 @@
+.idea
+venv
+.env
+poetry.lock
+.html
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-
+mail
 # C extensions
 *.so
 
